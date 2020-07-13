@@ -60,4 +60,9 @@
 (define ∘ composition)                                      ;Ob
 (define ◇ append)                                           ;Dw
 (define ∅ '())                                              ;/0
+(define ↑ car)                                              ;-!
+(define ↓ cdr)                                              ;-v
+(define ↓↑ cadr)
+(define ↓↓↑ caddr)
+(define ↓↓↓↑ cadddr)
 (define *** split-strong)
