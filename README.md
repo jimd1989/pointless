@@ -1,0 +1,1 @@
+Inspired by APL, J, and Haskell, a collection of macros and combinators to make tacit Scheme code more realistic. Just a fun experiment—no idea if this actually makes sense in a Lisp context. See the comments in `pointless.scm` for documentation.
