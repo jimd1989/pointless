@@ -13,9 +13,10 @@
 
 ; function composition (f g α) = (f (g α))
 (define-syntax delegate-delay
-  (syntax-rules (&&& ***)
+  (syntax-rules (&&& *** ⇒)
     ((_ (&&& α ...)) (fanout α ...))
     ((_ (*** α ...)) (split-strong α ...))
+    ((_ (⇒ α ...)) (macro-map α ...))
     ((_ (f α ...)) (delay f α ...))
     ((_ f) (delay f))))
 
@@ -72,6 +73,12 @@
 ; "and" as a normal function
 (define (& α ω) (and α ω))
 
+; point-free map
+(define-syntax macro-map
+  (syntax-rules ()
+    ((_ (f ...)) (lambda (α) (map (delegate-delay (f ...)) α)))
+    ((_ f) (lambda (α) (map (delegate-delay f) α)))))
+
 ; point-free if
 (define (? p f g) (λ (α) (if (p α) (f α) (g α))))
 
@@ -91,6 +98,7 @@
 (define-syntax &&& (syntax-rules () ((_ . α) (fanout . α))))
 (define-syntax *** (syntax-rules () ((_ . α) (split-strong . α))))
 (define-syntax Λ (syntax-rules () ((_ . α) (cut . α))))            ;L*
+(define-syntax ⇒ (syntax-rules () ((_ . α) (macro-map . α))))      ;=>
 (define ⊥ id)                                                      ;-T
 (define ∞ const)                                                   ;00
 (define ◇ append)                                                  ;Dw
@@ -113,7 +121,6 @@
 (define ↑. (flip take))
 (define ↓. (flip drop))
 (define ⊇ uncurry)                                                 ;)_
-(define ⇒ map)                                                     ;=>
 (define ⇐ filter)                                                  ;<=
 (define → foldr)                                                   ;->
 (define ← foldl)                                                   ;<-
