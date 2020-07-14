@@ -1,5 +1,10 @@
 (define-syntax λ (syntax-rules () ((_ . α) (lambda . α))))
 
+; delay (f α) = (λ (ω) (f α ω))
+(define-syntax delay
+  (syntax-rules ()
+    ((_ f ...) (lambda (α) (f ... α)))))
+
 ; monadic hook (f g α) = (f α (g α))
 (define-syntax hook
   (syntax-rules ()
@@ -49,12 +54,13 @@
     ((_ α (p f) ...) (cond ((p α) (f α)) ...))))
 
 ; synonyms
+(define-syntax ⊃ (syntax-rules () ((_ . α) (delay . α))))   ;)C
 (define-syntax ◁ (syntax-rules () ((_ . α) (hook . α))))    ;Tl
 (define-syntax ◀ (syntax-rules () ((_ . α) (dyhook . α))))  ;PL
 (define-syntax ∴ (syntax-rules () ((_ . α) (fork . α))))    ;.:
 (define-syntax ∵ (syntax-rules () ((_ . α) (dyfork . α))))  ;:.
 (define-syntax &&& (syntax-rules () ((_ . α) (fanout . α))))
-(define-syntax ⊂ (syntax-rules () ((_ . α) (cut . α))))     ;(C
+(define-syntax Λ (syntax-rules () ((_ . α) (cut . α))))     ;L*
 (define ≡ id)                                               ;=3
 (define ∞ const)                                            ;00
 (define ∘ composition)                                      ;Ob
@@ -65,4 +71,8 @@
 (define ↓↑ cadr)
 (define ↓↓↑ caddr)
 (define ↓↓↓↑ cadddr)
+(define ⇒ map)                                              ;=>
+(define → foldr)                                            ;->
+(define ← foldl)                                            ;<-
 (define *** split-strong)
+(define $ application)
