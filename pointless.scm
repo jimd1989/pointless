@@ -12,8 +12,8 @@
 (define (application f α) (f α))
 
 ; function composition (f g α) = (f (g α))
-(define-syntax delegate-delay
-  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ⇒)
+(define-syntax delay?
+  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ∴ ∵ ? ⇒ ⇐ ∈ ∀)
     ((_ (∘ α ...)) (composition α ...))
     ((_ (λ α ...)) (lambda α ...))
     ((_ (Λ α ...)) (cut α ...))
@@ -21,16 +21,22 @@
     ((_ (*** α ...)) (split-strong α ...))
     ((_ (◁ α ...)) (hook α ...))
     ((_ (◀ α ...)) (dyhook α ...))
-    ((_ (⇒ α ...)) (macro-map α ...))
+    ((_ (∴ α ...)) (fork α ...))
+    ((_ (∵ α ...)) (dyfork α ...))
+    ((_ (? α ...)) (tacit-if α ...))
+    ((_ (⇒ α ...)) (tacit-map α ...))
+    ((_ (⇐ α ...)) (tacit-filter α ...))
+    ((_ (∈ α ...)) (tacit-find α ...))
+    ((_ (∀ α ...)) (tacit-for-each α ...))
     ((_ (f α ...)) (delay f α ...))
     ((_ f) (delay f))))
 
 (define-syntax delay-params
   (syntax-rules ()
-    ((_ (f ...)) (list (delegate-delay (f ...))))
-    ((_ f) (list (delegate-delay f)))
-    ((_ (f ...) g ...) (cons (delegate-delay (f ...)) (delay-params g ...)))
-    ((_ f g ...) (cons (delegate-delay f) (delay-params g ...)))))
+    ((_ (f ...)) (list (delay? (f ...))))
+    ((_ f) (list (delay? f)))
+    ((_ (f ...) g ...) (cons (delay? (f ...)) (delay-params g ...)))
+    ((_ f g ...) (cons (delay? f) (delay-params g ...)))))
 
 (define-syntax composition
   (syntax-rules ()
@@ -49,49 +55,64 @@
 ; monadic hook (f g α) = (f α (g α))
 (define-syntax hook
   (syntax-rules ()
+    ((_ (f ...) g ...) (lambda (α) ((composition (f ... α) g ...) α)))
     ((_ f g ...) (lambda (α) ((composition (f α) g ...) α)))))
 
 ; dyadic hook (f g α ω) = (f α (g ω))
 (define-syntax dyhook
   (syntax-rules ()
+    ((_ (f ...) g ...) (lambda (α ω) ((composition (f ... α) g ...) ω)))
     ((_ f g ...) (lambda (α ω) ((composition (f α) g ...) ω)))))
 
 ; monadic fork (f g h α) = (f (g α) (h α))
 (define-syntax fork
   (syntax-rules ()
-    ((_ f g ...) (lambda (α) (f (g α) ...)))))
+    ((_ (f ...) g ...) (lambda (α) ((composition (apply f ...) (&&& g ...)) α)))
+    ((_ f g ...) (lambda (α) ((composition (apply f) (&&& g ...)) α)))))
 
 ; dyadic fork (f g h α ω) = (f (g α) (h ω))
 (define-syntax dyfork
   (syntax-rules ()
-    ((_ f g h ...) (lambda (α ω) (f (g α) (h ω) ...)))))
+    ((_ f g h ...) (lambda (α ω) ((∴ f (∘ g ↑) (∘ h ↓↑) ...) (list α ω))))))
+
+; point-free if
+(define-syntax tacit-if
+  (syntax-rules ()
+    ((_ p f g) (lambda (α) (if ((delay? p) α) ((delay? f) α) ((delay? g) α))))))
+
+; point-free cond
+(define-syntax match
+  (syntax-rules (otherwise)
+    ((_ α (p f) ... (otherwise g))
+     (cond (((delay? p) α) ((delay? f) α)) ... (else ((delay? g) α))))
+    ((_ α (p f) ...)
+     (cond (((delay? p) α) ((delay? f) α)) ...))))
+
+; general point-free constructor for higher order functions
+(define-syntax tacit-f
+  (syntax-rules ()
+    ((_ f g α ...) (lambda (ω) (f (delay? g) α ... ω)))))
+
+; point-free map, filter, find, for-each
+(define-syntax tacit-map (syntax-rules () ((_ . α) (tacit-f map . α))))
+(define-syntax tacit-filter (syntax-rules () ((_ . α) (tacit-f filter . α))))
+(define-syntax tacit-find (syntax-rules () ((_ . α) (tacit-f find . α))))
+(define-syntax tacit-for-each(syntax-rules () ((_ . α) (tacit-f for-each . α))))
 
 ; identity α = α
 (define (id α) α)
 
 ; const (α ω) = α
-(define (const α) (λ (ω) α))
+(define (const α ω) α)
 
 ; uncurrying (f '(α ω) = (f α ω)
 (define (uncurry f) (λ (α) (apply f α)))
 
-; "and" as a normal function
-(define (& α ω) (and α ω))
+; "and" as a normal function (AN)
+(define (∧ α ω) (and α ω))
 
-; point-free map
-(define-syntax macro-map
-  (syntax-rules ()
-    ((_ (f ...)) (lambda (α) (map (delegate-delay (f ...)) α)))
-    ((_ f) (lambda (α) (map (delegate-delay f) α)))))
-
-; point-free if
-(define (? p f g) (λ (α) (if (p α) (f α) (g α))))
-
-; point-free cond
-(define-syntax match
-  (syntax-rules (otherwise)
-    ((_ α (p f) ... (otherwise g)) (cond ((p α) (f α)) ... (else (g α))))
-    ((_ α (p f) ...) (cond ((p α) (f α)) ...))))
+; "or" as a normal function (OR)
+(define (∨ α ω) (or α ω))
 
 ; synonyms (poorly ordered functions will be flipped mercilessly)
 (define-syntax ⊃ (syntax-rules () ((_ . α) (delay . α))))          ;)C
@@ -103,13 +124,17 @@
 (define-syntax &&& (syntax-rules () ((_ . α) (fanout . α))))
 (define-syntax *** (syntax-rules () ((_ . α) (split-strong . α))))
 (define-syntax Λ (syntax-rules () ((_ . α) (cut . α))))            ;L*
-(define-syntax ⇒ (syntax-rules () ((_ . α) (macro-map . α))))      ;=>
+(define-syntax ⇒ (syntax-rules () ((_ . α) (tacit-map . α))))      ;=>
+(define-syntax ⇐ (syntax-rules () ((_ . α) (tacit-filter . α))))   ;<=
+(define-syntax ∈ (syntax-rules () ((_ . α) (tacit-find . α))))     ;(-
+(define-syntax ∀ (syntax-rules () ((_ . α) (tacit-for-each . α)))) ;FA
+(define-syntax ? (syntax-rules () ((_ . α) (tacit-if . α))))
 (define ⊥ id)                                                      ;-T
 (define ∞ const)                                                   ;00
 (define ◇ append)                                                  ;Dw
 (define ◆ conc)                                                    ;Db
-(define .◆ string-split)
-(define ◆. string-intersperse)
+(define s⊥□ string-split)                                          ;OS
+(define □⊥s string-intersperse)
 (define ≡ equal?)                                                  ;=3
 (define ∅ '())                                                     ;/0
 (define ↑ car)                                                     ;-!
@@ -126,12 +151,10 @@
 (define ↑. (flip take))
 (define ↓. (flip drop))
 (define ⊇ uncurry)                                                 ;)_
-(define ⇐ filter)                                                  ;<=
+(define ∷ cons)                                                    ;::
 (define → foldr)                                                   ;->
 (define ← foldl)                                                   ;<-
-(define ∈ find)                                                    ;(-
 (define ∋ (flip member))                                           ;)-
-(define ∀ for-each)                                                ;FA
 (define ι iota)                                                    ;i*
 (define ρ length)                                                  ;r*
 (define ⌐ flatten)                                                 ;NI
