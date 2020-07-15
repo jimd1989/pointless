@@ -13,9 +13,14 @@
 
 ; function composition (f g α) = (f (g α))
 (define-syntax delegate-delay
-  (syntax-rules (&&& *** ⇒)
+  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ⇒)
+    ((_ (∘ α ...)) (composition α ...))
+    ((_ (λ α ...)) (lambda α ...))
+    ((_ (Λ α ...)) (cut α ...))
     ((_ (&&& α ...)) (fanout α ...))
     ((_ (*** α ...)) (split-strong α ...))
+    ((_ (◁ α ...)) (hook α ...))
+    ((_ (◀ α ...)) (dyhook α ...))
     ((_ (⇒ α ...)) (macro-map α ...))
     ((_ (f α ...)) (delay f α ...))
     ((_ f) (delay f))))
@@ -44,12 +49,12 @@
 ; monadic hook (f g α) = (f α (g α))
 (define-syntax hook
   (syntax-rules ()
-    ((_ f g ...) (lambda (α) (f α (g α) ...)))))
+    ((_ f g ...) (lambda (α) ((composition (f α) g ...) α)))))
 
 ; dyadic hook (f g α ω) = (f α (g ω))
 (define-syntax dyhook
   (syntax-rules ()
-    ((_ f g ...) (lambda (α ω) (f α (g ω) ...)))))
+    ((_ f g ...) (lambda (α ω) ((composition (f α) g ...) ω)))))
 
 ; monadic fork (f g h α) = (f (g α) (h α))
 (define-syntax fork
