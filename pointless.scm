@@ -13,7 +13,7 @@
 
 ; function composition (f g α) = (f (g α))
 (define-syntax delay?
-  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ∴ ∵ ? ⇒ ⇐ ∈ ∀)
+  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ∴ ∵ ? ⇒ ⇐ ∈ ∀ ~)
     ((_ (∘ α ...)) (composition α ...))
     ((_ (λ α ...)) (lambda α ...))
     ((_ (Λ α ...)) (cut α ...))
@@ -28,6 +28,7 @@
     ((_ (⇐ α ...)) (tacit-filter α ...))
     ((_ (∈ α ...)) (tacit-find α ...))
     ((_ (∀ α ...)) (tacit-for-each α ...))
+    ((_ (~ α ...)) (flipping α ...))
     ((_ (f α ...)) (delay f α ...))
     ((_ f) (delay f))))
 
@@ -75,6 +76,11 @@
   (syntax-rules ()
     ((_ f g h ...) (lambda (α ω) ((∴ f (∘ g ↑) (∘ h ↓↑) ...) (list α ω))))))
 
+; flip (f α ω) = (f ω α)
+(define-syntax flipping
+  (syntax-rules ()
+    ((_ f α ...) (λ (ω) (f ω α ...)))))
+
 ; point-free if
 (define-syntax tacit-if
   (syntax-rules ()
@@ -82,8 +88,8 @@
 
 ; point-free cond
 (define-syntax match
-  (syntax-rules (otherwise)
-    ((_ α (p f) ... (otherwise g))
+  (syntax-rules (…)
+    ((_ α (p f) ... (… g))
      (cond (((delay? p) α) ((delay? f) α)) ... (else ((delay? g) α))))
     ((_ α (p f) ...)
      (cond (((delay? p) α) ((delay? f) α)) ...))))
@@ -129,6 +135,7 @@
 (define-syntax ∈ (syntax-rules () ((_ . α) (tacit-find . α))))     ;(-
 (define-syntax ∀ (syntax-rules () ((_ . α) (tacit-for-each . α)))) ;FA
 (define-syntax ? (syntax-rules () ((_ . α) (tacit-if . α))))
+(define-syntax ~ (syntax-rules () ((_ . α) (flipping . α))))
 (define ⊥ id)                                                      ;-T
 (define ∞ const)                                                   ;00
 (define ◇ append)                                                  ;Dw
@@ -150,6 +157,7 @@
 (define ↓↑↑↑ caaadr)
 (define ↑. (flip take))
 (define ↓. (flip drop))
+(define ↓… last)
 (define ⊇ uncurry)                                                 ;)_
 (define ∷ cons)                                                    ;::
 (define → foldr)                                                   ;->
@@ -159,9 +167,12 @@
 (define ρ length)                                                  ;r*
 (define ⌐ flatten)                                                 ;NI
 (define ⇔ reverse)                                                 ;==
+(define ∂ assoc)                                                   ;dP
 (define $ apply)
-(define ~ flip)
 (define v⊥x vector->list)
 (define x⊥v list->vector)
 (define s⊥x string->list)
 (define x⊥s list->string)
+(define v? vector?)
+(define p? pair?)
+(define ∅? null?)
