@@ -6,75 +6,75 @@
 ; delay (f α) = (λ (ω) (f α ω))
 (define-syntax delay
   (syntax-rules ()
-    ((_ f ...) (lambda (α) (f ... α)))))
+    ((_ (f (g ...))) (λ (α) (f ((delay? (g ...)) α))))
+    ((_ (f ...))     (λ (α) (f ... α)))
+    ((_ f ...)       (λ (α) (f ... α)))))
 
 ; application (f α) = (f α)
 (define (application f α) (f α))
 
 ; function composition (f g α) = (f (g α))
 (define-syntax delay?
-  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ∴ ∵ ? ⇒ ⇐ ∈ ∀ ~)
-    ((_ (∘ α ...)) (composition α ...))
-    ((_ (λ α ...)) (lambda α ...))
-    ((_ (Λ α ...)) (cut α ...))
+  (syntax-rules (∘ λ Λ &&& *** ◁ ◀ ∴ ∵ ? ?… ⇒ ⇐ ∈ ∀ ~)
+    ((_ (∘ α ...))   (composition α ...))
+    ((_ (λ α ...))   (lambda α ...))
+    ((_ (Λ α ...))   (cut α ...))
     ((_ (&&& α ...)) (fanout α ...))
     ((_ (*** α ...)) (split-strong α ...))
-    ((_ (◁ α ...)) (hook α ...))
-    ((_ (◀ α ...)) (dyhook α ...))
-    ((_ (∴ α ...)) (fork α ...))
-    ((_ (∵ α ...)) (dyfork α ...))
-    ((_ (? α ...)) (tacit-if α ...))
-    ((_ (⇒ α ...)) (tacit-map α ...))
-    ((_ (⇐ α ...)) (tacit-filter α ...))
-    ((_ (∈ α ...)) (tacit-find α ...))
-    ((_ (∀ α ...)) (tacit-for-each α ...))
-    ((_ (~ α ...)) (flipping α ...))
-    ((_ (f α ...)) (delay f α ...))
-    ((_ f) (delay f))))
+    ((_ (◁ α ...))   (hook α ...))
+    ((_ (◀ α ...))   (dyhook α ...))
+    ((_ (∴ α ...))   (fork α ...))
+    ((_ (∵ α ...))   (dyfork α ...))
+    ((_ (? α ...))   (tacit-if α ...))
+    ((_ (?… α ...))  (match α ...))
+    ((_ (⇒ α ...))   (tacit-map α ...))
+    ((_ (⇐ α ...))   (tacit-filter α ...))
+    ((_ (∈ α ...))   (tacit-find α ...))
+    ((_ (∀ α ...))   (tacit-for-each α ...))
+    ((_ (~ α ...))   (flipping α ...))
+    ((_ f)           (delay f))))
 
 (define-syntax delay-params
   (syntax-rules ()
-    ((_ (f ...)) (list (delay? (f ...))))
-    ((_ f) (list (delay? f)))
-    ((_ (f ...) g ...) (cons (delay? (f ...)) (delay-params g ...)))
+    ((_ f)       (list (delay? f)))
     ((_ f g ...) (cons (delay? f) (delay-params g ...)))))
 
 (define-syntax composition
   (syntax-rules ()
-    ((_ f ...) (lambda (α) (foldr application α (delay-params f ...))))))
+    ((_ f ...) (λ (α) (foldr application α (delay-params f ...))))))
 
 ; fanout (f g α) = '((f α) (g α))
 (define-syntax fanout
   (syntax-rules ()
-    ((_ f ...) (lambda (α) (map (lambda (ω) (ω α)) (delay-params f ...))))))
+    ((_ f ...) (λ (α) (map (λ (ω) (ω α)) (delay-params f ...))))))
 
 ; split strong (f g '(α ω)) = '((f α) (g ω))
 (define-syntax split-strong
   (syntax-rules ()
-    ((_ f ...) (lambda (α) (map application (delay-params f ...) α)))))
+    ((_ f ...) (λ (α) (map application (delay-params f ...) α)))))
 
 ; monadic hook (f g α) = (f α (g α))
 (define-syntax hook
   (syntax-rules ()
-    ((_ (f ...) g ...) (lambda (α) ((composition (f ... α) g ...) α)))
-    ((_ f g ...) (lambda (α) ((composition (f α) g ...) α)))))
+    ((_ (f ...) g ...) (λ (α) ((composition (f ... α) g ...) α)))
+    ((_ f g ...)       (λ (α) ((composition (f α) g ...) α)))))
 
 ; dyadic hook (f g α ω) = (f α (g ω))
 (define-syntax dyhook
   (syntax-rules ()
-    ((_ (f ...) g ...) (lambda (α ω) ((composition (f ... α) g ...) ω)))
-    ((_ f g ...) (lambda (α ω) ((composition (f α) g ...) ω)))))
+    ((_ (f ...) g ...) (λ (α ω) ((composition (f ... α) g ...) ω)))
+    ((_ f g ...)       (λ (α ω) ((composition (f α) g ...) ω)))))
 
 ; monadic fork (f g h α) = (f (g α) (h α))
 (define-syntax fork
   (syntax-rules ()
-    ((_ (f ...) g ...) (lambda (α) ((composition (apply f ...) (&&& g ...)) α)))
-    ((_ f g ...) (lambda (α) ((composition (apply f) (&&& g ...)) α)))))
+    ((_ (f ...) g ...) (λ (α) ((composition (apply f ...) (&&& g ...)) α)))
+    ((_ f g ...)       (λ (α) ((composition (apply f) (&&& g ...)) α)))))
 
 ; dyadic fork (f g h α ω) = (f (g α) (h ω))
 (define-syntax dyfork
   (syntax-rules ()
-    ((_ f g h ...) (lambda (α ω) ((∴ f (∘ g ↑) (∘ h ↓↑) ...) (list α ω))))))
+    ((_ f g h ...) (λ (α ω) ((∴ f (∘ g ↑) (∘ h ↓↑) ...) (list α ω))))))
 
 ; flip (f α ω) = (f ω α)
 (define-syntax flipping
@@ -84,7 +84,7 @@
 ; point-free if
 (define-syntax tacit-if
   (syntax-rules ()
-    ((_ p f g) (lambda (α) (if ((delay? p) α) ((delay? f) α) ((delay? g) α))))))
+    ((_ p f g) (λ (α) (if ((delay? p) α) ((delay? f) α) ((delay? g) α))))))
 
 ; point-free cond
 (define-syntax match
@@ -97,7 +97,7 @@
 ; general point-free constructor for higher order functions
 (define-syntax tacit-f
   (syntax-rules ()
-    ((_ f g α ...) (lambda (ω) (f (delay? g) α ... ω)))))
+    ((_ f g α ...) (λ (ω) (f (delay? g) α ... ω)))))
 
 ; point-free map, filter, find, for-each
 (define-syntax tacit-map (syntax-rules () ((_ . α) (tacit-f map . α))))
@@ -136,6 +136,7 @@
 (define-syntax ∀ (syntax-rules () ((_ . α) (tacit-for-each . α)))) ;FA
 (define-syntax ? (syntax-rules () ((_ . α) (tacit-if . α))))
 (define-syntax ~ (syntax-rules () ((_ . α) (flipping . α))))
+(define-syntax ?… (syntax-rules () ((_ . α) (match . α))))
 (define ⊥ id)                                                      ;-T
 (define ∞ const)                                                   ;00
 (define ◇ append)                                                  ;Dw
@@ -143,6 +144,8 @@
 (define s⊥□ string-split)                                          ;OS
 (define □⊥s string-intersperse)
 (define ≡ equal?)                                                  ;=3
+(define ≠ (λ (α ω) (not (≡ α ω))))                                 ;!=
+(define ! not)
 (define ∅ '())                                                     ;/0
 (define ↑ car)                                                     ;-!
 (define ↑↑ caar)
@@ -169,10 +172,22 @@
 (define ⇔ reverse)                                                 ;==
 (define ∂ assoc)                                                   ;dP
 (define $ apply)
+(define ⌈ ceiling)                                                 ;<7
+(define ⌊ floor)                                                   ;7<
+(define ÷ /)                                                       ;-:
+(define × *)                                                       ;*X
+(define ^ expt)
 (define v⊥x vector->list)
 (define x⊥v list->vector)
 (define s⊥x string->list)
 (define x⊥s list->string)
+(define c⊥n char->integer)
+(define n⊥c integer->char)
+(define c⊥C char-upcase)
+(define C⊥c char-downcase)
+(define s⊥n string->number)
+(define n⊥s number->string)
 (define v? vector?)
 (define p? pair?)
 (define ∅? null?)
+
